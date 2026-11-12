@@ -14,6 +14,7 @@ Each script has a usage guide at the top of the file (in Korean).
 | `Rig_To_Mixamo.py` | Renames and re-parents any rig to the Mixamo bone layout |
 | `SkinTokens_Fix_Bones.py` | Cleans up SkinTokens auto-rig bones and matches them to the Mixamo rig layout (run first) |
 | `SkinTokens_Fix_Weights.py` | Cleans up SkinTokens skin weights for humans and animals (run after Fix_Bones) |
+| `Symmetry_Bones.py` | Mirrors left-side bone positions and roll to the right side (X axis) |
 | `Symmetry_SkinWeight.py` | Mirrors left-side skin weights to the right side (X axis) |
 
 ## How to use
