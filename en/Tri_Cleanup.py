@@ -1,24 +1,33 @@
 # Tri_Cleanup.py
 # Blender 4.2 ~ 4.5
-# Cleans up the face layout of a decimated triangle mesh in one run.
 #
+# Purpose
+#  Cleans up the face layout of a decimated triangle mesh in one run.
+#
+# What it does
 #  [1] Pointless vertices in the middle of an edge (points with only 2 edges) -> dissolve
 #  [2] Faces with 4 or more sides -> all split into triangles
 #  [3] A triangle split into 3 triangles (3 edges meeting at a center point) -> dissolve the center point
 #  [4] The long edge of a very thin triangle -> rotate to the opposite point (Edge Rotate) for evenly shaped triangles
-#
 #  [3] and [4] affect each other, so they alternate until nothing changes.
+#  When done, the console shows the face count and thin triangle count before and after.
 #
-# Safeguards
-#  - Points/edges on open borders are not touched by default
-#  - [3] Keeps center points that stick out and form the shape
-#  - [4] Keeps corners/creases, places with no room around them, and places where faces would flip
-#  - [4] Edges marked Seam / Sharp are not touched
-#  - Setting PROTECT_GROUP to "Joints" protects the areas painted on the joints from [3]
+# Notes
+#  - Meant for triangle meshes. On a mostly-quad mesh, step [2] turns every face into triangles. (For quad meshes use Quad_Cleanup.py)
+#  - The whole mesh is processed, not just what is selected in Edit Mode.
+#  - Safeguards
+#      Points/edges on open borders are not touched by default (DISSOLVE_BOUNDARY)
+#      [3] Keeps center points that stick out and form the shape (MAX_HEIGHT_RATIO)
+#      [4] Keeps corners/creases, places with no room around them, and places where faces would flip
+#      [4] Edges marked Seam / Sharp are not touched
+#  - To protect places whose shape must be kept, like joints, paint them in a vertex group and put its name in PROTECT_GROUP (e.g. "Joints"); they are protected from [3].
+#    If no group with that name exists, it continues without protection.
 #
-# Usage: select mesh(es) in Object Mode (multiple OK) > Scripting tab > New text > Paste
-#        > Check the settings > Run Script
-# Save with Ctrl+S before running. You can undo with Ctrl+Z.
+# Usage
+#  1) Select mesh(es) in Object Mode. (Multiple OK)
+#  2) Scripting tab > New text > Paste > Check the settings > Run Script
+#  3) The result is shown in Window > Toggle System Console.
+#  4) Save with Ctrl+S before running. You can undo with Ctrl+Z.
 
 import bpy
 import bmesh

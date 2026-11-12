@@ -1,17 +1,33 @@
 # Rename_MaterialsAndTextures.py
 # Blender 4.x / 5.x
-# Based on the selected mesh object's name, renames in one go:
-#   - the mesh data
-#   - the materials
-#   - the image textures connected to the materials (+ the name of the connected channel)
-# so they all match.
 #
-# e.g. if the object is named Veil
-#   Mesh data : Veil
-#   Material  : Veil  (Veil_01, Veil_02 ... if there are several slots)
-#   Textures  : Veil_BaseColor, Veil_MetallicRoughness, Veil_Normal ...
+# Purpose
+#  Renames the mesh data, materials and textures after the selected mesh object's name, in one go.
+#  Use it to clean up names like Material.001 or Image_0 before exporting to an engine.
 #
-# Usage: Scripting tab > New text > Paste > Select meshes > Run Script
+# What it does
+#  1) Renames the mesh data to the object name. (RENAME_MESH_DATA)
+#  2) Renames the materials to the object name. With several slots, they become Name_01, Name_02 ...
+#  3) Renames the image textures in each material to "MaterialName_Channel". Node labels get the same name.
+#     The channel is the Principled BSDF input the image is connected to. (Intermediate nodes like Separate Color and Mix are followed)
+#       Base Color -> BaseColor, Normal Map/Bump -> Normal, Displacement -> Height,
+#       one image connected to both Metallic and Roughness -> MetallicRoughness (glTF style)
+#  e.g. if the object is named Veil
+#       Mesh data : Veil
+#       Material  : Veil (Veil_01, Veil_02 ... if there are several slots)
+#       Textures  : Veil_BaseColor, Veil_MetallicRoughness, Veil_Normal ...
+#
+# Notes
+#  - A material shared with other objects is copied for this object first and then renamed. The number of materials may grow.
+#  - Mesh data shared with other objects is not renamed.
+#  - If the same image is used by another material, that texture is skipped to avoid a name clash.
+#  - RENAME_FILEPATH = True only changes the file path name inside Blender, not the file name on disk.
+#    After turning it on, save the images again or rename the files on disk yourself, or the textures will go missing.
+#
+# Usage
+#  1) Select the meshes to rename. (Multiple OK)
+#  2) Scripting tab > New text > Paste > Check the settings > Run Script
+#  3) The list of new names is shown in Window > Toggle System Console.
 
 import bpy
 

@@ -1,11 +1,27 @@
 # Bisect_Half.py
 # Blender 4.2 ~ 4.5
-# Cuts the selected meshes exactly on the world X=0 (or Y, Z) plane and deletes one half.
-# Faces that cross the center line are cut in place, so the center line stays clean.
 #
-# Usage: select mesh(es) in Object Mode (multiple OK) > Scripting tab > New text > Paste
-#        > Check the settings below > Run Script
-# Save with Ctrl+S before running. (You can also undo with Ctrl+Z)
+# Purpose
+#  When you want to keep only half of a symmetric model, cuts the selected meshes exactly on the world X=0 (or Y, Z) plane and deletes one half.
+#  Use it to fix one half and then rebuild the symmetry with a Mirror modifier.
+#
+# What it does
+#  1) For each selected mesh, converts the world-space plane (AXIS, PLANE_OFFSET) to object space and cuts there.
+#     Faces that cross the center line are cut in place, so the center line stays clean.
+#  2) Keeps only the side set in KEEP_SIDE and deletes the other side.
+#  3) With FILL_CUT on, fills the cut opening with faces.
+#  4) With ADD_MIRROR on, adds a Mirror modifier named Mirror_Half. (Clipping and Merge on)
+#
+# Notes
+#  - Cuts on the world-space plane regardless of the object's location and rotation. The character must stand at the world X=0 center.
+#  - The Mirror modifier mirrors around the object origin. When using ADD_MIRROR, put the object origin at X=0 too.
+#  - Modifiers are not applied; the original mesh data is cut.
+#  - Objects that share the mesh data (Alt+D linked duplicates) are cut as well.
+#
+# Usage
+#  1) Select mesh(es) in Object Mode. (Multiple OK)
+#  2) Scripting tab > New text > Paste > Check the settings below > Run Script
+#  3) Save with Ctrl+S before running. You can undo with Ctrl+Z.
 
 import bpy
 import bmesh

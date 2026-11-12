@@ -1,16 +1,27 @@
 # Center_Merge.py
 # Blender 4.2 ~ 4.5
-# On a symmetric mesh, vertices crowded together on the center line (X=0)
-# are grouped with their close neighbors and merged into one. (Cleanup after Decimate Symmetry)
 #
-# - Only points on the center line are merged with each other, so regular left/right vertices are not touched.
-# - Merged points are snapped back to exactly X=0, so symmetry is kept.
-# - "Close" is measured as a ratio of the mesh's typical edge length,
-#   so the same settings work regardless of object size (scale).
+# Purpose
+#  On a symmetric mesh (e.g. made with Decimate Symmetry), cleans up vertices crowded together on the center line (X=0).
 #
-# Usage: select mesh(es) in Object Mode (multiple OK) > Scripting tab > New text > Paste
-#        > Check the settings > Run Script
-# Save with Ctrl+S before running. You can undo with Ctrl+Z.
+# What it does
+#  1) Measures the mesh's typical edge length (median) and uses it as the reference length.
+#     "On the center line" and "close" are ratios of this length, so the same settings work regardless of object size.
+#  2) Groups center-line points that are close to each other and merges each group into one at the group's average position.
+#     Only center-line points are merged with each other, so regular left/right vertices are not touched.
+#  3) Cleans up degenerate faces and edges created by merging, and repeats until nothing changes (up to MAX_PASSES times).
+#  4) Snaps center-line points back to exactly X=0 so symmetry is kept.
+#
+# Notes
+#  - Works in object local space. The object origin must be at the body center (X=0).
+#  - If MERGE_RATIO is too large, other parts close together on the center line (upper and lower lip, etc.) can merge too.
+#  - The whole mesh is processed, not just what is selected in Edit Mode.
+#
+# Usage
+#  1) Select mesh(es) in Object Mode. (Multiple OK)
+#  2) Scripting tab > New text > Paste > Check the settings > Run Script
+#  3) The result is shown in Window > Toggle System Console. (How many center-line vertices it went from and to)
+#  4) Save with Ctrl+S before running. You can undo with Ctrl+Z.
 
 import bpy
 import bmesh

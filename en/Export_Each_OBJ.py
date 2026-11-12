@@ -1,10 +1,28 @@
 # Export_Each_OBJ.py
 # Blender 4.2 ~ 4.5
-# Exports each mesh object in the scene to its own separate OBJ file.
-# File name = object name.obj
 #
-# Usage: save the .blend file first > Scripting tab > New text > Paste > Check the settings > Run Script
-# Result: an "obj_export" folder is created next to the .blend file and the files are saved there.
+# Purpose
+#  Exports each mesh object in the scene to its own separate OBJ file.
+#  Use it when files must be split per object, such as feeding parts one by one into a remeshing tool like Instant Meshes.
+#
+# What it does
+#  1) Creates the EXPORT_FOLDER folder. By default, an "obj_export" folder next to the .blend file.
+#  2) Saves each mesh as "ObjectName.obj". Characters not allowed in file names (< > : " / \ | ? *) are replaced with _.
+#  3) Export options
+#       Apply Modifiers on (shape with Decimate, Mirror, etc. applied), UV on, Normals on, Triangulate off
+#       Materials off (no .mtl files)
+#  4) When done, restores the selection and active object to their state before running.
+#
+# Notes
+#  - If EXPORT_FOLDER starts with //, save the .blend file first. If you don't want to save, use an absolute path.
+#  - Files with the same name are overwritten.
+#  - By default every mesh in the scene is exported. To export only some, set ONLY_SELECTED = True, select them and run.
+#  - Objects hidden in the viewport are skipped by default. (ONLY_VISIBLE)
+#
+# Usage
+#  1) Save the .blend file first.
+#  2) Scripting tab > New text > Paste > Check the settings > Run Script
+#  3) The list of saved files is shown in Window > Toggle System Console.
 
 import bpy
 import os

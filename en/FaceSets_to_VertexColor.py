@@ -1,10 +1,24 @@
 # FaceSets_to_VertexColor.py
 # Blender 4.2 ~ 4.5
-# Converts the Face Sets of the selected meshes into vertex colors (Color Attribute).
-# Each Face Set automatically gets a clearly distinct color. (For ID map baking)
 #
-# Usage: select a mesh in Object Mode > Scripting tab > New text > Paste > Run Script
-# Result: a color attribute named "FaceSetID" is created and set as the active/render color.
+# Purpose
+#  Converts the Face Sets of the selected meshes into vertex colors (Color Attribute).
+#  Use it to bake part separation made in Sculpt Mode into an ID map, or as a mask for texturing.
+#
+# What it does
+#  1) Picks a clearly distinct color for each Face Set automatically. (Hue stepped by the golden ratio, mixed with 3 brightness levels)
+#  2) Creates a color attribute named "FaceSetID" (Face Corner, Byte Color) and fills each face with its Face Set's color.
+#  3) Sets this attribute as the active and render color.
+#
+# Notes
+#  - Meshes without Face Sets are skipped. Create Face Sets in Sculpt Mode first.
+#  - If a color attribute with the same name (ATTR_NAME) exists, it is deleted and recreated.
+#  - Colors follow the Face Set number order. If you add or remove Face Sets and run again, other Face Sets' colors may change too.
+#
+# Usage
+#  1) Select mesh(es) in Object Mode. (Multiple OK)
+#  2) Scripting tab > New text > Paste > Run Script
+#  3) To see the result, set the viewport Solid mode Color to Attribute.
 
 import bpy
 import colorsys

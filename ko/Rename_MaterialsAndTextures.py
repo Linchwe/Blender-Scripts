@@ -1,17 +1,33 @@
 # Rename_MaterialsAndTextures.py
 # Blender 4.x / 5.x
-# 선택한 메쉬 오브젝트 이름을 기준으로
-#   - 메쉬 데이터 이름
-#   - 머티리얼 이름
-#   - 머티리얼에 연결된 이미지 텍스처 이름 (+ 연결된 채널 이름)
-# 을 한 번에 맞춰 줍니다.
 #
-# 예) 오브젝트 이름이 Veil 이면
-#   메쉬 데이터  : Veil
-#   머티리얼     : Veil  (슬롯이 여러 개면 Veil_01, Veil_02 ...)
-#   텍스처       : Veil_BaseColor, Veil_MetallicRoughness, Veil_Normal ...
+# 용도
+#  선택한 메쉬 오브젝트 이름을 기준으로 메쉬 데이터, 머티리얼, 텍스처 이름을 한 번에 맞춰 줍니다.
+#  엔진으로 내보내기 전에 Material.001, Image_0 같은 이름을 정리할 때 씁니다.
 #
-# 사용법: Scripting 탭 > 새 텍스트 > 붙여넣기 > 메쉬 선택 > Run Script
+# 하는 일
+#  1) 메쉬 데이터 이름을 오브젝트 이름으로 바꿉니다. (RENAME_MESH_DATA)
+#  2) 머티리얼 이름을 오브젝트 이름으로 바꿉니다. 슬롯이 여러 개면 이름_01, 이름_02 ... 로 붙입니다.
+#  3) 머티리얼 안의 이미지 텍스처 이름을 "머티리얼이름_채널" 로 바꿉니다. 노드 라벨도 같은 이름으로 바꿉니다.
+#     채널은 그 이미지가 연결된 Principled BSDF 입력으로 정합니다. (Separate Color, Mix 같은 중간 노드도 따라감)
+#       Base Color → BaseColor, Normal Map/Bump → Normal, Displacement → Height,
+#       Metallic 과 Roughness 에 같이 연결된 한 장 → MetallicRoughness (glTF 방식)
+#  예) 오브젝트 이름이 Veil 이면
+#       메쉬 데이터 : Veil
+#       머티리얼    : Veil (슬롯이 여러 개면 Veil_01, Veil_02 ...)
+#       텍스처      : Veil_BaseColor, Veil_MetallicRoughness, Veil_Normal ...
+#
+# 주의
+#  - 다른 오브젝트와 같이 쓰는 머티리얼은 이 오브젝트 전용으로 복사한 뒤 이름을 바꿉니다. 머티리얼 개수가 늘어날 수 있습니다.
+#  - 다른 오브젝트와 같이 쓰는 메쉬 데이터는 이름을 바꾸지 않습니다.
+#  - 같은 이미지를 다른 머티리얼에서도 쓰고 있으면 이름이 겹치지 않게 그 텍스처는 건너뜁니다.
+#  - RENAME_FILEPATH = True 는 블렌더 안의 파일 경로 이름만 바꾸고 디스크의 파일 이름은 바꾸지 않습니다.
+#    켠 뒤에는 이미지를 다시 저장하거나 디스크 파일 이름을 직접 맞춰야 텍스처가 사라지지 않습니다.
+#
+# 사용법
+#  1) 이름을 맞출 메쉬를 선택합니다. (여러 개 가능)
+#  2) Scripting 탭 > 새 텍스트 > 붙여넣기 > 설정 확인 > Run Script
+#  3) 바뀐 이름 목록은 Window > Toggle System Console 에 나옵니다.
 
 import bpy
 

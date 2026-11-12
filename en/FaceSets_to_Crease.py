@@ -1,21 +1,25 @@
 # FaceSets_to_Crease.py
 # Blender 4.2 ~ 4.5
-# Automatically adds Crease to the boundary edges between Face Sets made in Sculpt Mode.
-# Keeps Face Set borders (clothing seams, part borders, etc.) sharp instead of smoothed out under Subdivision Surface.
 #
-#  - An edge where two faces from different Face Sets meet = Face Set boundary -> crease is added
-#  - Edges inside the same Face Set are not touched.
-#  - Optionally, crease can also be added to the mesh's open borders (edges with a face on only one side).
+# Purpose
+#  Automatically adds Crease to the boundary edges between Face Sets made in Sculpt Mode.
+#  Keeps Face Set borders (clothing seams, part borders, etc.) sharp instead of smoothed out under Subdivision Surface.
+#
+# What it does
+#  1) Finds edges where two faces from different Face Sets meet (Face Set boundaries) and sets their crease to CREASE_VALUE.
+#  2) Edges inside the same Face Set are not touched.
+#  3) With INCLUDE_OPEN_EDGES on, also creases the mesh's open borders (edges with a face on only one side).
+#  4) Switches to Object Mode briefly to process, then returns to the original mode (Sculpt, Edit, etc.).
 #
 # Notes
 #  - Meshes that never had Face Sets created have no Face Set data and are skipped.
 #  - By default existing creases are kept and only boundary edges are overwritten. To start over, set CLEAR_EXISTING = True.
 #  - Crease is only visible when there is a Subdivision Surface modifier.
 #
-# Usage: select mesh(es) (multiple OK, can run directly from Sculpt Mode) > Scripting tab > New text
-#        > Paste > Check the settings > Run Script
-#        (Switches to Object Mode briefly, then returns to the original mode)
-# Save with Ctrl+S before running. You can undo with Ctrl+Z.
+# Usage
+#  1) Select mesh(es). (Multiple OK, can run directly from Sculpt Mode)
+#  2) Scripting tab > New text > Paste > Check the settings > Run Script
+#  3) Save with Ctrl+S before running. You can undo with Ctrl+Z.
 
 import bpy
 import numpy as np

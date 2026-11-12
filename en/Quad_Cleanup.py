@@ -1,15 +1,28 @@
 # Quad_Cleanup.py
 # Blender 4.2 ~ 4.5
-# Cleans up the messy parts of auto-retopology results (Instant Meshes etc.) in one run.
 #
+# Purpose
+#  Cleans up the messy parts of auto-retopology results (Instant Meshes etc.) in one run.
+#
+# What it does
 #  [2] Pointless vertices in the middle of an edge (points with only 2 edges) -> dissolve
 #  [3] Pointless edges that only connect the "middles" of two parallel edges -> remove
 #  [1] Places where an edge flow ends by hitting the middle of another edge at a right angle (T-junction)
 #      -> connect that point to the vertex on the opposite side to remove the N-gon
+#      T_SPLIT_MODE = 'BOTH' makes 2 cuts to both opposite vertices, 'QUAD_TRI' makes 1 cut (a pentagon becomes 1 quad + 1 triangle)
+#  The steps above repeat until nothing changes (up to MAX_PASSES times).
 #
-# Usage: select mesh(es) in Object Mode (multiple OK) > Scripting tab > New text > Paste
-#        > Check the settings > Run Script
-# Save with Ctrl+S before running. You can undo with Ctrl+Z.
+# Notes
+#  - The whole mesh is processed, not just what is selected in Edit Mode.
+#  - Points on open borders (e.g. the center line of a half mesh) are not touched by default. To clean them, set DISSOLVE_BOUNDARY = True.
+#  - A T-junction is only detected when two edges are nearly straight (STRAIGHT_ANGLE degrees or more). If too few are caught on curved surfaces, lower it a little.
+#  - Cuts are only made between vertices on the same face. Already connected vertices are skipped.
+#
+# Usage
+#  1) Select mesh(es) in Object Mode. (Multiple OK)
+#  2) Scripting tab > New text > Paste > Check the settings > Run Script
+#  3) The result is shown in Window > Toggle System Console.
+#  4) Save with Ctrl+S before running. You can undo with Ctrl+Z.
 
 import bpy
 import bmesh

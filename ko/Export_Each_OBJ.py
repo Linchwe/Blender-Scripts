@@ -1,10 +1,28 @@
 # Export_Each_OBJ.py
 # Blender 4.2 ~ 4.5
-# 씬의 메쉬 오브젝트를 오브젝트마다 각각 따로 OBJ 파일로 내보냅니다.
-# 파일 이름 = 오브젝트 이름.obj
 #
-# 사용법: .blend 파일을 먼저 저장 > Scripting 탭 > 새 텍스트 > 붙여넣기 > 설정 확인 > Run Script
-# 결과: .blend 파일이 있는 폴더 안에 "obj_export" 폴더가 생기고 그 안에 저장됩니다.
+# 용도
+#  씬의 메쉬 오브젝트를 오브젝트마다 각각 따로 OBJ 파일로 내보냅니다.
+#  Instant Meshes 같은 리메쉬 도구에 파츠를 하나씩 넣을 때처럼, 파일이 오브젝트별로 나뉘어야 할 때 씁니다.
+#
+# 하는 일
+#  1) EXPORT_FOLDER 에 폴더를 만듭니다. 기본값은 .blend 파일이 있는 폴더 안의 "obj_export" 폴더입니다.
+#  2) 메쉬마다 "오브젝트이름.obj" 로 저장합니다. 파일 이름에 쓸 수 없는 글자(< > : " / \ | ? *)는 _ 로 바꿉니다.
+#  3) 내보내기 옵션
+#       Apply Modifiers 켬 (디시메이트, 미러 등이 적용된 모양), UV 켬, Normals 켬, Triangulate 끔
+#       Materials 끔 (.mtl 파일을 만들지 않음)
+#  4) 끝나면 선택 상태와 활성 오브젝트를 실행 전으로 되돌립니다.
+#
+# 주의
+#  - EXPORT_FOLDER 가 // 로 시작하면 .blend 파일을 먼저 저장해야 합니다. 저장하지 않으려면 절대경로를 적으세요.
+#  - 같은 이름의 파일이 있으면 덮어씁니다.
+#  - 기본값은 씬의 모든 메쉬입니다. 일부만 내보내려면 ONLY_SELECTED = True 로 바꾸고 선택한 뒤 실행하세요.
+#  - 뷰포트에서 숨긴 오브젝트는 기본으로 빠집니다. (ONLY_VISIBLE)
+#
+# 사용법
+#  1) .blend 파일을 먼저 저장합니다.
+#  2) Scripting 탭 > 새 텍스트 > 붙여넣기 > 설정 확인 > Run Script
+#  3) 저장된 파일 목록은 Window > Toggle System Console 에 나옵니다.
 
 import bpy
 import os
