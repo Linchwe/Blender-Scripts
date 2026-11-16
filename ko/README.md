@@ -17,9 +17,10 @@
 ### 내보내기
 | 스크립트 | 하는 일 |
 |---|---|
-| `Export_FBX_ForUnity.py` | 유니티용 FBX 내보내기 |
-| `Export_FBX_ForUnreal.py` | 언리얼 엔진용 FBX 내보내기 |
-| `Export_GLB_ForGodot.py` | 고도용 GLB 내보내기 |
+| `Export_FBX_ForUnity_URP.py` | 유니티 URP 용 FBX 내보내기 + URP Lit 셰이더에 맞게 합친 텍스처 (TGA: BaseMap, MetallicAOSmoothness, Normal) |
+| `Export_FBX_ForUnity_HDRP.py` | 유니티 HDRP 용 FBX 내보내기 + HDRP Lit 셰이더에 맞게 합친 텍스처 (TGA: BaseColor, MaskMap, Normal) |
+| `Export_FBX_ForUnreal.py` | 언리얼 엔진용 FBX 내보내기 + 언리얼에 맞게 합친 텍스처 (TGA: BaseColor, ORM, DirectX 노멀) |
+| `Export_GLB_ForGodot.py` | 고도용 GLB 내보내기 (AO 도 glTF Occlusion 으로 넣음) |
 | `Export_Each_OBJ.py` | 메쉬 오브젝트마다 따로 OBJ 파일로 내보내기 |
 
 ### 메쉬 정리

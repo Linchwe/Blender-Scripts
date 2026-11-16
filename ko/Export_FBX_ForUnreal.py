@@ -2,7 +2,7 @@
 # Blender 4.2 ~ 4.5
 #
 # 용도
-#  리깅이 끝난 캐릭터(아마추어 + 메쉬)를 언리얼 엔진 5 용 FBX 로 한 번에 내보냅니다.
+#  리깅이 끝난 캐릭터(아마추어 + 메쉬)를 언리얼 엔진 5 용 FBX 와 텍스처로 한 번에 내보냅니다.
 #  오브젝트를 선택하지 않아도 되고, Export 창에서 옵션을 하나하나 맞출 필요가 없습니다.
 #
 # 하는 일
@@ -14,23 +14,37 @@
 #       Apply Scalings = FBX All, Forward = -Z, Up = Y, Apply Unit 켬, Use Space Transform 켬, Apply Transform 끔
 #       Smoothing = Face, Apply Modifiers 켬, ※ Triangulate 켬 (블렌더와 언리얼의 삼각형 분할을 같게 해서 노멀맵 이음새 방지)
 #       Tangent Space 끔, Primary/Secondary Bone Axis = Y/X, Armature Node Type = Null
-#       Only Deform Bones 끔, Add Leaf Bones 끔, Bake Animation 끔, Path Mode = Copy
+#       Only Deform Bones 끔, Add Leaf Bones 끔, Bake Animation 끔
+#       Path Mode = Strip (텍스처는 FBX 에 넣거나 복사하지 않고 5번의 TGA 를 따로 씀)
+#  5) 머티리얼마다 언리얼 머티리얼에 맞게 텍스처를 합쳐서 Export\파일이름_Unreal_Textures 폴더에 TGA 로 저장합니다.
+#       머티리얼이름_BaseColor.tga : RGB 색, A 투명도 (투명한 곳이 없으면 A 없이 저장)
+#       머티리얼이름_ORM.tga       : R AO, G 러프니스, B 금속성
+#       머티리얼이름_Normal.tga    : 노멀. 초록 채널을 뒤집어 DirectX 방식으로 저장 (언리얼은 DirectX 방식)
+#     Principled BSDF 에 연결된 이미지(Normal Map, Separate Color 노드를 거친 것도 읽음)와, 연결 없이 넣어 둔
+#     AO 이미지 노드(이름에 AO 가 들어간 것)를 읽습니다. Bake_PBR_HighToLow.py 로 구운 머티리얼을 그대로 읽습니다.
+#     이미지가 없는 맵은 소켓 값으로, AO 가 없으면 흰색(가림 없음)으로 채웁니다. 크기가 다르면 가장 큰 크기에 맞춥니다.
+#     블렌더 머티리얼과 원본 이미지는 바꾸지 않습니다.
 #
 # 주의
 #  - .blend 파일을 먼저 저장해 두어야 합니다.
 #  - 씬에 숨겨 둔 메쉬(하이폴리 등)도 같이 나갑니다. 넣기 싫은 메쉬는 다른 씬으로 옮기거나 지우고 실행하세요.
 #  - 아마추어 오브젝트 이름은 "Armature" 그대로 두세요. 언리얼은 이 이름의 노드를 빼고 그 아래 첫 본
 #    (AccuRIG 리그는 RL_BoneRoot) 을 루트 본으로 씁니다. 이름을 바꾸면 루트 본이 하나 더 생깁니다.
+#  - Principled BSDF 앞에 Math, Brightness/Contrast 같은 보정 노드가 있으면 그 입력은 읽지 못하고 값으로 채웁니다.
+#    (콘솔에 [주의] 로 나옴) 이럴 때는 Bake_PBR_HighToLow.py 로 구운 뒤 내보내세요.
 #  - 언리얼에서 가져온 뒤 꼭 확인하세요.
 #      캐릭터 키가 맞는지 (UE 마네킹이 약 180cm). 다르면 임포트 옵션의 Uniform Scale 로 맞춤
 #      노멀은 Import Normals 로 (자동 계산하면 블렌더에서 만든 노멀이 사라짐)
-#  - 언리얼 머티리얼은 Roughness, Metallic, AO 를 따로 꽂아도 되고, ORM 한 장으로 합쳐 써도 됩니다.
+#      텍스처 : ORM 은 sRGB 끄기, Compression Settings = Masks. Normal 은 이미 DirectX 라 Flip Green Channel 을 켜지 마세요.
+#      머티리얼 : ORM 의 R 을 Ambient Occlusion, G 를 Roughness, B 를 Metallic 에 연결.
+#                 투명한 곳이 있으면 Blend Mode = Masked 로 하고 BaseColor 의 A 를 Opacity Mask 에 연결
 #
 # 사용법
 #  1) Scripting 탭 > 새 텍스트 > 붙여넣기 > Run Script
 #  2) 진행 상황은 Window > Toggle System Console 에서 볼 수 있습니다.
 
 import bpy
+import os
 
 # 설정
 OUT_FOLDER = "Export"   # .blend 옆에 만들 폴더 이름
@@ -49,10 +63,8 @@ def make_settings(path):
         mesh_smooth_type='FACE', use_mesh_modifiers=True, use_triangles=True, use_tspace=False,
         primary_bone_axis='Y', secondary_bone_axis='X', armature_nodetype='NULL',
         use_armature_deform_only=False, add_leaf_bones=False,
-        bake_anim=False, path_mode='COPY', embed_textures=False, batch_mode='OFF',
+        bake_anim=False, path_mode='STRIP', embed_textures=False, batch_mode='OFF',
     )
-
-import os
 
 # 확인
 if not bpy.data.filepath:
@@ -70,6 +82,211 @@ path = os.path.join(out_dir, f"{base}_{SUFFIX}{EXT}")
 # 오브젝트 모드로
 if bpy.context.mode != 'OBJECT':
     bpy.ops.object.mode_set(mode='OBJECT')
+
+# ---------------------------------------------------------------------------------------------
+# 텍스처 묶기 (엔진용 채널 합치기)
+# ---------------------------------------------------------------------------------------------
+import re
+import numpy as np
+
+TEX_DIR = f"{base}_{SUFFIX}_Textures"
+
+
+def srgb(c):
+    # 선형 값을 sRGB 로
+    c = np.clip(c, 0.0, 1.0)
+    return np.where(c <= 0.0031308, c * 12.92, 1.055 * np.power(c, 1 / 2.4) - 0.055)
+
+
+def find_tex(sock):
+    # 소켓에 연결된 이미지와 채널을 찾음. 반환: (이미지, 채널) / None(연결 없음) / "complex"(읽을 수 없는 노드)
+    if not sock.is_linked:
+        return None
+    link = sock.links[0]
+    node, out = link.from_node, link.from_socket.name
+    for _ in range(4):
+        if node.type == 'TEX_IMAGE':
+            if node.image is None:
+                return None
+            return (node.image, 'A' if out == 'Alpha' else 'RGB')
+        if node.type == 'NORMAL_MAP':
+            nxt = node.inputs['Color']
+            ch = None
+        elif node.type in ('SEPARATE_COLOR', 'SEPRGB') and getattr(node, "mode", 'RGB') == 'RGB':
+            nxt = node.inputs[0]
+            ch = {'Red': 'R', 'Green': 'G', 'Blue': 'B', 'R': 'R', 'G': 'G', 'B': 'B'}.get(out)
+        else:
+            return "complex"
+        if not nxt.is_linked:
+            return None
+        link = nxt.links[0]
+        node, out = link.from_node, link.from_socket.name
+        if ch and node.type == 'TEX_IMAGE' and node.image is not None:
+            return (node.image, ch)
+    return "complex"
+
+
+AO_NAME = re.compile(r'(^|[^A-Za-z])AO([^A-Za-z]|$)', re.IGNORECASE)
+
+
+def find_ao(mat):
+    # AO 이미지 노드: glTF Material Output 의 Occlusion 에 연결된 것, 없으면 이름에 AO 가 들어간 이미지 노드
+    nodes = mat.node_tree.nodes
+    for n in nodes:
+        if n.type == 'GROUP' and n.node_tree and n.node_tree.name in ("glTF Material Output", "glTF Settings"):
+            occ = n.inputs.get("Occlusion")
+            if occ is not None:
+                r = find_tex(occ)
+                if isinstance(r, tuple):
+                    return r
+    for n in nodes:
+        if n.type == 'TEX_IMAGE' and n.image is not None:
+            if AO_NAME.search(n.image.name) or AO_NAME.search(n.label) or AO_NAME.search(n.name):
+                return (n.image, 'RGB')
+    return None
+
+
+def read(img, size, channel, rgb=False, to_srgb=False):
+    # 이미지를 size 크기로 읽어서 채널 하나(H,W) 또는 RGB(H,W,3) 로 돌려줌. 블렌더 순서(아래에서 위) 그대로
+    w, h = size
+    src = img
+    tmp = None
+    if tuple(img.size) != (w, h):
+        tmp = img.copy()
+        tmp.scale(w, h)
+        src = tmp
+    try:
+        n = src.size[0] * src.size[1] * 4
+        if n == 0:
+            return None
+        a = np.empty(n, np.float32)
+        src.pixels.foreach_get(a)
+        a = a.reshape(h, w, 4)
+        if to_srgb and src.is_float:
+            a[..., :3] = srgb(a[..., :3])
+    except Exception:
+        return None
+    finally:
+        if tmp is not None:
+            bpy.data.images.remove(tmp)
+    if channel == 'RGB':
+        return a[..., :3].copy() if rgb else a[..., 0].copy()
+    return a[..., 'RGBA'.index(channel)].copy()
+
+
+def gather(mat):
+    # 머티리얼에서 Base Color, Alpha, Roughness, Metallic, Normal, AO 를 모음
+    if not mat or not mat.use_nodes:
+        return None
+    bsdf = next((n for n in mat.node_tree.nodes if n.type == 'BSDF_PRINCIPLED'), None)
+    if bsdf is None:
+        return None
+    src = {}
+    warn = []
+    for key, sock in (("color", "Base Color"), ("alpha", "Alpha"), ("rough", "Roughness"),
+                      ("metal", "Metallic"), ("normal", "Normal")):
+        r = find_tex(bsdf.inputs[sock])
+        if r == "complex":
+            warn.append(sock)
+            r = None
+        src[key] = r
+    src["ao"] = find_ao(mat)
+    imgs = [v[0] for v in src.values() if isinstance(v, tuple)]
+    sizes = [tuple(i.size) for i in imgs if i.size[0] > 0]
+    size = max(sizes, key=lambda s: s[0] * s[1]) if sizes else (256, 256)
+    w, h = size
+
+    def plane(key, default):
+        v = src.get(key)
+        if isinstance(v, tuple):
+            p = read(v[0], size, v[1])
+            if p is not None:
+                return p
+            warn.append(v[0].name)
+        return np.full((h, w), default, np.float32)
+
+    col = None
+    if isinstance(src["color"], tuple):
+        col = read(src["color"][0], size, src["color"][1], rgb=True, to_srgb=True)
+        if col is not None and col.ndim == 2:
+            col = np.repeat(col[..., None], 3, axis=2)
+    if col is None:
+        c = np.array(bsdf.inputs["Base Color"].default_value[:3], np.float32)
+        col = np.broadcast_to(srgb(c), (h, w, 3)).copy()
+    nrm = None
+    if isinstance(src["normal"], tuple):
+        nrm = read(src["normal"][0], size, 'RGB', rgb=True) if src["normal"][1] == 'RGB' else None
+    return {
+        "size": size, "color": col,
+        "alpha": plane("alpha", bsdf.inputs["Alpha"].default_value),
+        "rough": plane("rough", bsdf.inputs["Roughness"].default_value),
+        "metal": plane("metal", bsdf.inputs["Metallic"].default_value),
+        "ao": plane("ao", 1.0),
+        "normal": nrm, "warn": warn,
+        "found": [k for k, v in src.items() if isinstance(v, tuple)],
+    }
+
+
+def save_tga(path, chans, alpha=None):
+    # 채널(H,W) 3개 또는 4개를 TGA 로 저장. alpha 가 None 이면 24비트 RGB
+    h, w = chans[0].shape
+    rgba = np.ones((h, w, 4), np.float32)
+    for i, c in enumerate(chans[:3]):
+        rgba[..., i] = np.clip(c, 0, 1)
+    if alpha is not None:
+        rgba[..., 3] = np.clip(alpha, 0, 1)
+    img = bpy.data.images.new("_PackTemp", w, h, alpha=alpha is not None)
+    try:
+        img.colorspace_settings.name = 'Non-Color'
+        img.pixels.foreach_set(rgba.ravel())
+        img.filepath_raw = path
+        img.file_format = 'TARGA'
+        img.save()
+    finally:
+        bpy.data.images.remove(img)
+
+
+def safe(name):
+    return re.sub(r'[\\/:*?"<>|]+', "_", name).strip() or "Material"
+
+
+def export_textures():
+    folder = os.path.join(out_dir, TEX_DIR)
+    os.makedirs(folder, exist_ok=True)
+    mats = []
+    for o in meshes:
+        for slot in o.material_slots:
+            if slot.material and slot.material not in mats:
+                mats.append(slot.material)
+    done = 0
+    for m in mats:
+        d = gather(m)
+        if d is None:
+            print(f"  [건너뜀] {m.name} : Principled BSDF 가 없습니다.")
+            continue
+        has_alpha = bool((d["alpha"] < 0.999).any())
+        files = pack(os.path.join(folder, safe(m.name)), d, has_alpha)
+        done += 1
+        print(f"  {m.name} ({d['size'][0]}x{d['size'][1]}) : {', '.join(files)}")
+        labels = {"color": "Base Color", "rough": "Roughness", "metal": "Metallic", "normal": "Normal", "ao": "AO"}
+        missing = [labels[k] for k in labels if k not in d["found"]]
+        if missing:
+            print(f"    이미지가 없어 값으로 채운 맵: {', '.join(missing)}")
+        if d["warn"]:
+            print(f"    [주의] 노드가 복잡해서 읽지 못한 입력: {', '.join(d['warn'])} (값으로 채움)")
+    print(f"텍스처 저장: {folder} (머티리얼 {done}개)")
+
+
+def pack(stem, d, has_alpha):
+    c = d["color"]
+    save_tga(stem + "_BaseColor.tga", [c[..., 0], c[..., 1], c[..., 2]], d["alpha"] if has_alpha else None)
+    save_tga(stem + "_ORM.tga", [d["ao"], d["rough"], d["metal"]])
+    out = ["BaseColor", "ORM"]
+    if d["normal"] is not None:
+        n = d["normal"]
+        save_tga(stem + "_Normal.tga", [n[..., 0], 1.0 - n[..., 1], n[..., 2]])   # DirectX: 초록 뒤집기
+        out.append("Normal (DirectX)")
+    return out
 
 
 def rest_pose_on():
@@ -140,4 +357,5 @@ finally:
     rest_pose_off(saved)
 print(f"저장: {path}")
 print("액션과 포즈는 실행 전 상태로 되돌렸습니다.")
+export_textures()
 print("=" * 60)

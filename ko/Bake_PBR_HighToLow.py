@@ -45,7 +45,8 @@
 #  - 구운 결과에 구멍이나 검은 얼룩이 있으면 아래 EXTRUSION 을 0.02 ~ 0.05 로 올리고,
 #    다른 부위 색이 묻어나면 내려서 다시 실행하세요.
 #  - AO 가 너무 넓게 어두우면 AO_DISTANCE 를 내리고, 주름이나 틈이 잘 안 보이면 올리세요. 얼룩지면 AO_SAMPLES 를 올리세요.
-#  - Normal 은 OpenGL 방식입니다. 유니티, 고도는 그대로 쓰고, 언리얼은 가져올 때 Flip Green Channel 을 켜세요.
+#  - Normal 은 OpenGL 방식입니다. 유니티, 고도는 그대로 씁니다. 언리얼은 Export_FBX_ForUnreal.py 로 내보내면
+#    DirectX 방식으로 바꿔 주고, 이 PNG 를 직접 가져올 때만 Flip Green Channel 을 켜세요.
 #
 # 사용법
 #  1) 하이폴리와 로우폴리를 선택합니다. 로우폴리를 마지막에 선택해서 활성으로 만드세요.

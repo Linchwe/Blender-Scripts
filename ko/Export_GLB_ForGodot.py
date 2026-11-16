@@ -18,6 +18,10 @@
 #       Animations 끔
 #  5) 머티리얼의 Roughness 와 Metallic 은 glTF 규격에 맞게 한 장으로 자동으로 합쳐지고,
 #     Alpha 에 연결한 Opacity 도 그대로 들어갑니다. 고도는 이 머티리얼을 바로 씁니다.
+#  6) AO 도 glTF 의 Occlusion 으로 넣습니다. (고도에서 R AO, G 러프니스, B 금속성 한 장으로 읽힘)
+#     연결 없이 넣어 둔 AO 이미지 노드(이름에 AO 가 들어간 것, Bake_PBR_HighToLow.py 결과)를 찾아서,
+#     내보내는 동안만 머티리얼에 "glTF Material Output" 노드를 붙여 Occlusion 에 연결하고, 끝나면 다시 뗍니다.
+#     머티리얼에 이미 glTF Material Output 노드가 있으면 그대로 둡니다.
 #
 # 주의
 #  - .blend 파일을 먼저 저장해 두어야 합니다.
@@ -131,14 +135,71 @@ def run(op, settings):
     return op(**kw)
 
 
+# AO 를 glTF Occlusion 으로 내보내기 (내보내는 동안만)
+import re
+
+AO_NAME = re.compile(r'(^|[^A-Za-z])AO([^A-Za-z]|$)', re.IGNORECASE)
+GLTF_GROUP = "glTF Material Output"
+
+
+def find_ao_node(mat):
+    for n in mat.node_tree.nodes:
+        if n.type == 'TEX_IMAGE' and n.image is not None:
+            if AO_NAME.search(n.image.name) or AO_NAME.search(n.label) or AO_NAME.search(n.name):
+                return n
+    return None
+
+
+def ao_hook_on():
+    mats = []
+    for o in meshes:
+        for slot in o.material_slots:
+            m = slot.material
+            if m and m.use_nodes and m not in mats:
+                mats.append(m)
+    group = bpy.data.node_groups.get(GLTF_GROUP)
+    created = group is None
+    if created:
+        group = bpy.data.node_groups.new(GLTF_GROUP, 'ShaderNodeTree')
+        if hasattr(group, "interface"):
+            group.interface.new_socket("Occlusion", in_out='INPUT', socket_type='NodeSocketFloat')
+        else:
+            group.inputs.new('NodeSocketFloat', "Occlusion")
+    added = []
+    for m in mats:
+        nodes = m.node_tree.nodes
+        if any(n.type == 'GROUP' and n.node_tree and n.node_tree.name in (GLTF_GROUP, "glTF Settings") for n in nodes):
+            continue
+        ao = find_ao_node(m)
+        if ao is None:
+            continue
+        g = nodes.new('ShaderNodeGroup')
+        g.node_tree = group
+        m.node_tree.links.new(ao.outputs['Color'], g.inputs['Occlusion'])
+        added.append((m, g))
+    if added:
+        print(f"AO 를 Occlusion 으로 내보내는 머티리얼: {', '.join(m.name for m, g in added)}")
+    return group, created, added
+
+
+def ao_hook_off(hook):
+    group, created, added = hook
+    for m, g in added:
+        m.node_tree.nodes.remove(g)
+    if created and group.users == 0:
+        bpy.data.node_groups.remove(group)
+
+
 print("=" * 60)
 print(f"{SUFFIX} 용으로 내보내기")
 print(f"아마추어: {', '.join(o.name for o in arms) or '없음'}")
 print(f"메쉬: {', '.join(o.name for o in meshes)}")
 saved = rest_pose_on()
+hook = ao_hook_on()
 try:
     run(OPERATOR, make_settings(path))
 finally:
+    ao_hook_off(hook)
     rest_pose_off(saved)
 print(f"저장: {path}")
 print("액션과 포즈는 실행 전 상태로 되돌렸습니다.")

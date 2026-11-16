@@ -45,7 +45,8 @@
 #  - If the result has holes or black smudges, raise EXTRUSION below to 0.02 ~ 0.05;
 #    if colors from other parts bleed in, lower it and run again.
 #  - If AO is dark over too wide an area, lower AO_DISTANCE; if wrinkles and gaps don't show, raise it. If it is blotchy, raise AO_SAMPLES.
-#  - The normal map is OpenGL style. Unity and Godot use it as is; in Unreal, turn on Flip Green Channel when importing.
+#  - The normal map is OpenGL style. Unity and Godot use it as is. For Unreal, Export_FBX_ForUnreal.py converts it to
+#    DirectX; turn on Flip Green Channel only when importing this PNG directly.
 #
 # Usage
 #  1) Select the high-poly and the low-poly. Select the low-poly last so it is active.

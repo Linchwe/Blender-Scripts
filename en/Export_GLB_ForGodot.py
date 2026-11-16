@@ -18,6 +18,10 @@
 #       Animations off
 #  5) The material's Roughness and Metallic are automatically combined into one texture per the glTF spec,
 #     and Opacity connected to Alpha is included as is. Godot uses this material directly.
+#  6) AO is exported too, as glTF Occlusion. (Godot reads it as one texture: R AO, G roughness, B metallic)
+#     Finds an unconnected AO image node (with AO in its name, as made by Bake_PBR_HighToLow.py) and, only while
+#     exporting, adds a "glTF Material Output" node to the material connected to Occlusion, then removes it.
+#     A material that already has a glTF Material Output node is left as it is.
 #
 # Notes
 #  - Save the .blend file first.
@@ -131,14 +135,71 @@ def run(op, settings):
     return op(**kw)
 
 
+# Export AO as glTF Occlusion (only while exporting)
+import re
+
+AO_NAME = re.compile(r'(^|[^A-Za-z])AO([^A-Za-z]|$)', re.IGNORECASE)
+GLTF_GROUP = "glTF Material Output"
+
+
+def find_ao_node(mat):
+    for n in mat.node_tree.nodes:
+        if n.type == 'TEX_IMAGE' and n.image is not None:
+            if AO_NAME.search(n.image.name) or AO_NAME.search(n.label) or AO_NAME.search(n.name):
+                return n
+    return None
+
+
+def ao_hook_on():
+    mats = []
+    for o in meshes:
+        for slot in o.material_slots:
+            m = slot.material
+            if m and m.use_nodes and m not in mats:
+                mats.append(m)
+    group = bpy.data.node_groups.get(GLTF_GROUP)
+    created = group is None
+    if created:
+        group = bpy.data.node_groups.new(GLTF_GROUP, 'ShaderNodeTree')
+        if hasattr(group, "interface"):
+            group.interface.new_socket("Occlusion", in_out='INPUT', socket_type='NodeSocketFloat')
+        else:
+            group.inputs.new('NodeSocketFloat', "Occlusion")
+    added = []
+    for m in mats:
+        nodes = m.node_tree.nodes
+        if any(n.type == 'GROUP' and n.node_tree and n.node_tree.name in (GLTF_GROUP, "glTF Settings") for n in nodes):
+            continue
+        ao = find_ao_node(m)
+        if ao is None:
+            continue
+        g = nodes.new('ShaderNodeGroup')
+        g.node_tree = group
+        m.node_tree.links.new(ao.outputs['Color'], g.inputs['Occlusion'])
+        added.append((m, g))
+    if added:
+        print(f"Materials exporting AO as Occlusion: {', '.join(m.name for m, g in added)}")
+    return group, created, added
+
+
+def ao_hook_off(hook):
+    group, created, added = hook
+    for m, g in added:
+        m.node_tree.nodes.remove(g)
+    if created and group.users == 0:
+        bpy.data.node_groups.remove(group)
+
+
 print("=" * 60)
 print(f"Exporting for {SUFFIX}")
 print(f"Armatures: {', '.join(o.name for o in arms) or 'none'}")
 print(f"Meshes: {', '.join(o.name for o in meshes)}")
 saved = rest_pose_on()
+hook = ao_hook_on()
 try:
     run(OPERATOR, make_settings(path))
 finally:
+    ao_hook_off(hook)
     rest_pose_off(saved)
 print(f"Saved: {path}")
 print("Actions and poses were restored to their state before running.")

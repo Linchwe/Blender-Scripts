@@ -20,9 +20,10 @@ The code is identical in both folders; only the comments and messages differ.
 ### Export
 | Script | What it does |
 |---|---|
-| `Export_FBX_ForUnity.py` | FBX export preset for Unity |
-| `Export_FBX_ForUnreal.py` | FBX export preset for Unreal Engine |
-| `Export_GLB_ForGodot.py` | GLB export preset for Godot |
+| `Export_FBX_ForUnity_URP.py` | FBX export preset for Unity URP, plus textures packed for the URP Lit shader (TGA: BaseMap, MetallicAOSmoothness, Normal) |
+| `Export_FBX_ForUnity_HDRP.py` | FBX export preset for Unity HDRP, plus textures packed for the HDRP Lit shader (TGA: BaseColor, MaskMap, Normal) |
+| `Export_FBX_ForUnreal.py` | FBX export preset for Unreal Engine, plus textures packed for Unreal (TGA: BaseColor, ORM, DirectX Normal) |
+| `Export_GLB_ForGodot.py` | GLB export preset for Godot, with AO exported as glTF Occlusion |
 | `Export_Each_OBJ.py` | Exports every mesh object to its own OBJ file |
 
 ### Mesh cleanup
